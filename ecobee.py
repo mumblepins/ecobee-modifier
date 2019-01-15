@@ -9,8 +9,8 @@ from threading import Event
 
 import pyowm
 import pytz
-from pyowm.webapi25.forecaster import Forecaster
-from pyowm.webapi25.weather import Weather
+from pyowm.weatherapi25.forecaster import Forecaster
+from pyowm.weatherapi25.observation import Observation
 
 from ecobee_data import EcobeeData
 from utils import wait, string_to_bool
@@ -65,7 +65,7 @@ def calc_relative_humidity(temp, dewpoint):
     return rh
 
 
-def desired_humid_perc(inside_temp, outside_temp, diff=20):
+def desired_humid_perc(inside_temp, outside_temp, diff: float = 20):
     des_dewpoint = outside_temp + diff
     return calc_relative_humidity(inside_temp, des_dewpoint)
 
@@ -171,6 +171,8 @@ def run():
 
 
 def get_owm_outside_temps():
+    cur_weather: Observation
+    cur_forecast: Forecaster
     owm = pyowm.OWM(owm_api_key)
     location_lat = os.environ.get('OWM_LATITUDE', None)
     location_lon = os.environ.get('OWM_LONGITUDE', None)
@@ -179,20 +181,20 @@ def get_owm_outside_temps():
     if location_lon and location_lat:
         location_lon = float(location_lon)
         location_lat = float(location_lat)
-        cur_weather: Weather = owm.weather_at_coords(location_lat, location_lon)
-        cur_forecast: Forecaster = owm.three_hours_forecast_at_coords(location_lat, location_lon)
+        cur_weather = owm.weather_at_coords(location_lat, location_lon)
+        cur_forecast = owm.three_hours_forecast_at_coords(location_lat, location_lon)
     elif location_id:
         location_id = int(location_id)
-        cur_weather: Weather = owm.weather_at_id(location_id)
-        cur_forecast: Forecaster = owm.three_hours_forecast_at_id(location_id)
+        cur_weather = owm.weather_at_id(location_id)
+        cur_forecast = owm.three_hours_forecast_at_id(location_id)
     elif location_name:
-        cur_weather: Weather = owm.weather_at_place(location_name)
-        cur_forecast: Forecaster = owm.three_hours_forecast(location_name)
+        cur_weather = owm.weather_at_place(location_name)
+        cur_forecast = owm.three_hours_forecast(location_name)
     else:
         raise ValueError('One OWM location type needs to be specified (lat-lon,id,or string)')
     cur_outside_temp = cur_weather.get_weather().get_temperature(unit='fahrenheit')
     future_time = datetime.now(pytz.utc) + timedelta(hours=1)
-    mintime = 60*60*2 # 2 hours
+    mintime = 60 * 60 * 2  # 2 hours
     future_outside_temp = None
     for f in cur_forecast.get_forecast():
         timediff = abs((f.get_reference_time('date') - future_time).total_seconds())

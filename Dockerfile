@@ -1,12 +1,14 @@
 FROM python:3.6-alpine
 
+
+
+COPY *.py requirements.txt /ecobee/
+
 RUN set -ex; \
-    pip install \
-        pyowm \
-        pyecobee ;\
+    cd /ecobee/ ;\
+    pip install -r requirements.txt ;\
     mkdir -p /ecobee/config
 
-COPY ecobee*.py utils.py /ecobee/
 VOLUME /ecobee/config
 
 WORKDIR /ecobee/config
