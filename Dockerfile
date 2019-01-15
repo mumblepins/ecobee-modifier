@@ -6,7 +6,7 @@ RUN set -ex; \
         pyecobee ;\
     mkdir -p /ecobee/config
 
-COPY *.py /ecobee/
+COPY ecobee*.py utils.py /ecobee/
 VOLUME /ecobee/config
 
 WORKDIR /ecobee/config
