@@ -1,0 +1,36 @@
+version: '3.5'
+
+volumes:
+  data:
+    driver: local-persist
+    driver_opts:
+      mountpoint:
+        /gluster-docker-data/configs/ecobee-humidity
+
+networks:
+  external-net:
+    external: true
+
+services:
+  humidity:
+    image: mumblepins/ecobee-humidity
+    volumes:
+      - data:/ecobee/config
+    networks:
+      - external-net
+    environment:
+# REPLACE #####
+      - OWM_API_KEY=
+      - ECOBEE_API_KEY=
+      - OWM_LATITUDE=
+      - OWM_LONGITUDE=
+######
+      - DEWPOINT_DELTA=22.5
+      - MAX_HUMIDITY=50
+      - MIN_HUMIDITY=20
+      - MAX_STEAM_HUMIDITY=40
+      - LOG_LEVEL=DEBUG
+      - UPDATE_INTERVAL=60
+      - "FAN_FACTORS=[-0.009920634920634809, 0.20833333333333004, -1.2003968253967905, 0.624999999999841, 13.710317460317722, -8.333333333333519]"
+      - SWITCH_BACKLIGHT=FALSE
+      - SHOW_WAIT_COUNTDOWN=FALSE
