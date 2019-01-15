@@ -13,7 +13,7 @@ networks:
 
 services:
   humidity:
-    image: mumblepins/ecobee-humidity
+    image: mumblepins/ecobee-modifier
     volumes:
       - data:/ecobee/config
     networks:
