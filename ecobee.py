@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 logging.getLogger('requests').setLevel(logging.CRITICAL)
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 logging.getLogger('pyecobee').setLevel(logging.CRITICAL)
-logging.getLogger('ecobee_data').setLevel(logging.INFO)
+logging.getLogger('ecobee_data').setLevel(logging.DEBUG)
 
 TEMP_DELTA = 20
 
@@ -100,13 +100,39 @@ def switch_backlight():
 
 def switch_humidifier():
     cur_humid = ecobee.get_cur_inside_humidity()
-    if 'auxHeat' not in ecobee.get_cur_hvac_mode() and cur_humid > max_steam_humidity:
+    cur_humid_mode = ecobee.get_humidity_mode()
+    cur_hvac_mode = ecobee.get_cur_hvac_mode()
+    if 'auxHeat' in cur_hvac_mode:
+        if cur_humid_mode != 'manual':
+            logger.debug('heat on, setting humidifier to manual')
+            ecobee.set_humidity_mode('manual')
+        else:
+            logger.debug('heat on, already set to manual, doing nothing')
+        return
+
+    if cur_humid_mode == 'manual' and \
+            cur_humid >= max_steam_humidity + steam_humidity_hysteresis:
         logger.debug('heat not on and humidity (%0.0f%%) above (%0.0f%%), turning off humidifier', cur_humid,
-                     max_steam_humidity)
+                     max_steam_humidity + steam_humidity_hysteresis)
         ecobee.set_humidity_mode('off')
-    else:
-        logger.debug('setting humidifier to manual')
+    elif cur_humid_mode != 'manual' and \
+            cur_humid <= max_steam_humidity:
+        logger.debug('heat not on and humidity (%0.0f%%) below (%0.0f%%), turning on humidifier', cur_humid,
+                     max_steam_humidity)
         ecobee.set_humidity_mode('manual')
+    else:
+        logger.debug('heat not on and humidifier mode is "%s" with humidity of %0.0f%%, not changing anything',
+                     cur_humid_mode, cur_humid)
+
+    # if 'auxHeat' not in ecobee.get_cur_hvac_mode() and \
+    #         'manual' == ecobee.get_humidity_mode() and \
+    #         cur_humid > max_steam_humidity:
+    #     logger.debug('heat not on and humidity (%0.0f%%) above (%0.0f%%), turning off humidifier', cur_humid,
+    #                  max_steam_humidity)
+    #     ecobee.set_humidity_mode('off')
+    # else:
+    #     logger.debug('setting humidifier to manual')
+    #     ecobee.set_humidity_mode('manual')
 
 
 def get_fan_runtime():
@@ -136,6 +162,8 @@ def run():
     global ecobee
     ecobee = EcobeeData(shelf_name, thermostat_name, ecobee_api_key, exit_signal)
     ecobee.get_token()
+    # ecobee.get_humidity_mode()
+    # return
     ecobee.store_backlight_settings()
     fan_mode = os.environ.get('FAN_MODE', 'DELTA').lower()
     if fan_mode[:3] == 'del':
@@ -213,6 +241,7 @@ if __name__ == '__main__':
     temp_delta = float(os.environ.get('DEWPOINT_DELTA', TEMP_DELTA))
     update_interval = int(os.environ.get('UPDATE_INTERVAL', 600))
     max_steam_humidity = float(os.environ.get('MAX_STEAM_HUMIDITY', 40))
+    steam_humidity_hysteresis = float(os.environ.get('STEAM_HUMIDITY_HYST', 2))
 
     max_humidity = float(os.environ.get('MAX_HUMIDITY', 50))
     min_humidity = float(os.environ.get('MIN_HUMIDITY', 10))
@@ -231,6 +260,7 @@ if __name__ == '__main__':
     while not exit_signal.is_set():
         run()
         log_handler.flush()
+        break
         show_interval = max(10, update_interval / 10.0)
         wait(update_interval, exit_signal, interval=show_interval,
              extra_message='/{} seconds waiting ...'.format(update_interval),

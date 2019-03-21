@@ -110,7 +110,7 @@ class EcobeeData:
             sensor_name = sensor.name
             caps = [s for s in sensor.capability if s.type == 'temperature']
             if len(caps) > 0:
-                temps[sensor_name] = float(caps[0].value) /10.0
+                temps[sensor_name] = float(caps[0].value) / 10.0
 
         return temps
 
@@ -205,6 +205,13 @@ class EcobeeData:
             )
         )
         logger.debug(thermostat_response.pretty_format())
+
+    def get_humidity_mode(self):
+        thermostat_response = self.ecobee_service.request_thermostats(
+            peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match='',
+                          include_settings=True)
+        )
+        return thermostat_response.thermostat_list[0].settings.humidifier_mode
 
     def set_fan_min_on_time(self, min_on_time):
         thermostat_response = self.ecobee_service.update_thermostats(
