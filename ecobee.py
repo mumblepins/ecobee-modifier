@@ -260,7 +260,7 @@ if __name__ == '__main__':
     while not exit_signal.is_set():
         run()
         log_handler.flush()
-        break
+        # break
         show_interval = max(10, update_interval / 10.0)
         wait(update_interval, exit_signal, interval=show_interval,
              extra_message='/{} seconds waiting ...'.format(update_interval),
