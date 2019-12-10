@@ -153,7 +153,7 @@ def get_fan_runtime():
                   fan_factors[3] * pow(sensor_delta, 2) + \
                   fan_factors[4] * sensor_delta + \
                   fan_factors[5]
-    rt_rounded = min(max(int(5 * round(runtime / 5)), 0), 60)
+    rt_rounded = min(max(int(5 * round(runtime / 5)), fan_min[1]), fan_max[1])
     logger.debug("Fan runtime setting %d (%0.3f) for ΔT=%0.1f", rt_rounded, runtime, sensor_delta)
     return rt_rounded
 
