@@ -29,6 +29,8 @@ logging.getLogger('ecobee_data').setLevel(logging.DEBUG)
 
 TEMP_DELTA = 20
 R_VALUE=2.5
+OUTER_FILM_R=0.05
+INNER_FILM_R=0.8
 polling_interval = 30
 
 ecobee: EcobeeData = None
@@ -68,7 +70,7 @@ def calc_relative_humidity(temp, dewpoint):
 def desired_humid_perc(inside_temp, outside_temp, r_value: float = 2.5,
                        # diff: float = 20
                        ):
-    des_dewpoint = (inside_temp - outside_temp) / (.17 + .68 + r_value) * (r_value + .17) + outside_temp
+    des_dewpoint = (inside_temp - outside_temp) / (OUTER_FILM_R + INNER_FILM_R + r_value) * (r_value + OUTER_FILM_R) + outside_temp
     # des_dewpoint = outside_temp + diff
     return calc_relative_humidity(inside_temp, des_dewpoint)
 
