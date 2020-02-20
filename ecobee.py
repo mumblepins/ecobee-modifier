@@ -28,7 +28,7 @@ logging.getLogger('pyecobee').setLevel(logging.CRITICAL)
 logging.getLogger('ecobee_data').setLevel(logging.DEBUG)
 
 TEMP_DELTA = 20
-
+R_VALUE=2.5
 polling_interval = 30
 
 ecobee: EcobeeData = None
@@ -65,8 +65,11 @@ def calc_relative_humidity(temp, dewpoint):
     return rh
 
 
-def desired_humid_perc(inside_temp, outside_temp, diff: float = 20):
-    des_dewpoint = outside_temp + diff
+def desired_humid_perc(inside_temp, outside_temp, r_value: float = 2.5,
+                       # diff: float = 20
+                       ):
+    des_dewpoint = (inside_temp - outside_temp) / (.17 + .68 + r_value) * (r_value + .17) + outside_temp
+    # des_dewpoint = outside_temp + diff
     return calc_relative_humidity(inside_temp, des_dewpoint)
 
 
@@ -177,11 +180,11 @@ def run():
     in_temp, des_in_temp = ecobee.get_cur_inside_temp()
     outside_temp, future_out_temp = get_owm_outside_temps()
     future_des_temp = ecobee.get_future_set_temp()
-    cur_out_cur_in_rh = desired_humid_perc(in_temp, outside_temp, temp_delta)
+    cur_out_cur_in_rh = desired_humid_perc(in_temp, outside_temp, r_value)
     logger.info("RH Based on current inside (%0.1f F) and outside (%0.1f F) temp: %0.1f%%",
                 in_temp, outside_temp,
                 cur_out_cur_in_rh)
-    future_out_future_in_rh = desired_humid_perc(future_des_temp, future_out_temp, temp_delta)
+    future_out_future_in_rh = desired_humid_perc(future_des_temp, future_out_temp, r_value)
     logger.info("RH Based on desired inside (%0.1f F) and future outside (%0.1f F) temp: %0.1f%%",
                 future_des_temp, future_out_temp, future_out_future_in_rh)
 
@@ -239,6 +242,7 @@ if __name__ == '__main__':
     ecobee_api_key = os.environ['ECOBEE_API_KEY']
     owm_api_key = os.environ['OWM_API_KEY']
     temp_delta = float(os.environ.get('DEWPOINT_DELTA', TEMP_DELTA))
+    r_value=float(os.environ.get('R_VALUE', R_VALUE))
     update_interval = int(os.environ.get('UPDATE_INTERVAL', 600))
     max_steam_humidity = float(os.environ.get('MAX_STEAM_HUMIDITY', 40))
     steam_humidity_hysteresis = float(os.environ.get('STEAM_HUMIDITY_HYST', 2))
