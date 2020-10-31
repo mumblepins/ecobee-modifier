@@ -183,28 +183,23 @@ class EcobeeData:
         return True
 
     def set_humidity(self, rh):
-        thermostat_response = self.ecobee_service.update_thermostats(
-            selection=peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match=''),
-            thermostat=peb.Thermostat(
-                settings=peb.Settings(
-                    humidity=int(rh)
-                )
-            )
+        self._set_settings(
+            settings=peb.Settings(humidity=int(rh))
         )
-        logger.debug(thermostat_response.pretty_format())
 
     def set_humidity_auto(self):
         self.set_humidity_mode('auto')
 
+    def _selection(self, **kwargs):
+        return peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match='', **kwargs)
+
+    def _get_selection(self, selection, **kwargs):
+        return self.ecobee_service.request_thermostats(selection)
+
     def set_humidity_mode(self, mode):
-        thermostat_response = self.ecobee_service.update_thermostats(
-            selection=peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match=''),
-            thermostat=peb.Thermostat(
-                settings=peb.Settings(
-                    humidifier_mode=mode)
-            )
+        self._set_settings(
+            peb.Settings(humidifier_mode=mode)
         )
-        logger.debug(thermostat_response.pretty_format())
 
     def get_humidity_mode(self):
         thermostat_response = self.ecobee_service.request_thermostats(
@@ -214,15 +209,9 @@ class EcobeeData:
         return thermostat_response.thermostat_list[0].settings.humidifier_mode
 
     def set_fan_min_on_time(self, min_on_time):
-        thermostat_response = self.ecobee_service.update_thermostats(
-            selection=peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match=''),
-            thermostat=peb.Thermostat(
-                settings=peb.Settings(
-                    fan_min_on_time=int(min_on_time),
-                )
-            )
+        self._set_settings(
+            peb.Settings(fan_min_on_time=int(min_on_time))
         )
-        logger.debug(thermostat_response.pretty_format())
 
     def store_backlight_settings(self):
         thermostat_response = self.ecobee_service.request_thermostats(
@@ -246,25 +235,21 @@ class EcobeeData:
             self.backlight_settings = new_bl_settings
             self.persist_to_shelf()
 
-    def turn_backlight_off(self):
-        logger.debug("Turning Backlight Off")
+    def _set_settings(self, settings):
+        sel = self._selection()
+        ident=self._get_selection(sel).thermostat_list[0].identifier
         thermostat_response = self.ecobee_service.update_thermostats(
-            selection=peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match=''),
-            thermostat=peb.Thermostat(
-                settings=self._backlight_off
-            )
+            selection=sel,
+            thermostat=peb.Thermostat(identifier=ident,
+                                      settings=settings)
         )
         logger.debug(thermostat_response.pretty_format())
 
+    def turn_backlight_off(self):
+        self._set_settings(self._backlight_off)
+
     def turn_backlight_on(self):
-        logger.debug("Turning Backlight On")
-        thermostat_response = self.ecobee_service.update_thermostats(
-            selection=peb.Selection(selection_type=peb.SelectionType.REGISTERED.value, selection_match=''),
-            thermostat=peb.Thermostat(
-                settings=self.backlight_settings
-            )
-        )
-        logger.debug(thermostat_response.pretty_format())
+        self._set_settings(self.backlight_settings)
 
     def get_cur_inside_temp(self):
         thermostat_response = self.ecobee_service.request_thermostats(

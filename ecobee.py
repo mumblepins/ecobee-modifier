@@ -28,9 +28,9 @@ logging.getLogger('pyecobee').setLevel(logging.CRITICAL)
 logging.getLogger('ecobee_data').setLevel(logging.DEBUG)
 
 TEMP_DELTA = 20
-R_VALUE=2.5
-OUTER_FILM_R=0.05
-INNER_FILM_R=0.8
+R_VALUE = 2.5
+OUTER_FILM_R = 0.05
+INNER_FILM_R = 0.8
 polling_interval = 30
 
 ecobee: EcobeeData = None
@@ -70,7 +70,8 @@ def calc_relative_humidity(temp, dewpoint):
 def desired_humid_perc(inside_temp, outside_temp, r_value: float = 2.5,
                        # diff: float = 20
                        ):
-    des_dewpoint = (inside_temp - outside_temp) / (OUTER_FILM_R + INNER_FILM_R + r_value) * (r_value + OUTER_FILM_R) + outside_temp
+    des_dewpoint = (inside_temp - outside_temp) / (OUTER_FILM_R + INNER_FILM_R + r_value) * (
+                r_value + OUTER_FILM_R) + outside_temp
     # des_dewpoint = outside_temp + diff
     return calc_relative_humidity(inside_temp, des_dewpoint)
 
@@ -206,7 +207,7 @@ def run():
 def get_owm_outside_temps():
     cur_weather: Observation
     cur_forecast: Forecaster
-    owm = pyowm.OWM(owm_api_key)
+    owm = pyowm.OWM(owm_api_key).weather_manager()
     location_lat = os.environ.get('OWM_LATITUDE', None)
     location_lon = os.environ.get('OWM_LONGITUDE', None)
     location_id = os.environ.get('OWM_ID', None)
@@ -215,27 +216,27 @@ def get_owm_outside_temps():
         location_lon = float(location_lon)
         location_lat = float(location_lat)
         cur_weather = owm.weather_at_coords(location_lat, location_lon)
-        cur_forecast = owm.three_hours_forecast_at_coords(location_lat, location_lon)
+        cur_forecast = owm.forecast_at_coords(location_lat, location_lon, interval='3h')
     elif location_id:
         location_id = int(location_id)
         cur_weather = owm.weather_at_id(location_id)
-        cur_forecast = owm.three_hours_forecast_at_id(location_id)
+        cur_forecast = owm.forecast_at_id(location_id, interval='3h')
     elif location_name:
         cur_weather = owm.weather_at_place(location_name)
-        cur_forecast = owm.three_hours_forecast(location_name)
+        cur_forecast = owm.forecast_at_place(location_name, interval='3h')
     else:
         raise ValueError('One OWM location type needs to be specified (lat-lon,id,or string)')
-    cur_outside_temp = cur_weather.get_weather().get_temperature(unit='fahrenheit')
+    cur_outside_temp = cur_weather.weather.temperature(unit='fahrenheit')
     future_time = datetime.now(pytz.utc) + timedelta(hours=1)
     mintime = 60 * 60 * 2  # 2 hours
     future_outside_temp = None
-    for f in cur_forecast.get_forecast():
-        timediff = abs((f.get_reference_time('date') - future_time).total_seconds())
+    for f in cur_forecast.forecast:
+        timediff = abs((f.reference_time('date') - future_time).total_seconds())
 
         if timediff < mintime:
             mintime = timediff
-            future_outside_temp = f.get_temperature(unit='fahrenheit')
-            logger.debug("OWM: %s, %0.1f -> %0.1f", f.get_reference_time('date'), mintime, future_outside_temp['temp'])
+            future_outside_temp = f.temperature(unit='fahrenheit')
+            logger.debug("OWM: %s, %0.1f -> %0.1f", f.reference_time('date'), mintime, future_outside_temp['temp'])
     return cur_outside_temp['temp'], future_outside_temp['temp']
 
 
@@ -244,7 +245,7 @@ if __name__ == '__main__':
     ecobee_api_key = os.environ['ECOBEE_API_KEY']
     owm_api_key = os.environ['OWM_API_KEY']
     temp_delta = float(os.environ.get('DEWPOINT_DELTA', TEMP_DELTA))
-    r_value=float(os.environ.get('R_VALUE', R_VALUE))
+    r_value = float(os.environ.get('R_VALUE', R_VALUE))
     update_interval = int(os.environ.get('UPDATE_INTERVAL', 600))
     max_steam_humidity = float(os.environ.get('MAX_STEAM_HUMIDITY', 40))
     steam_humidity_hysteresis = float(os.environ.get('STEAM_HUMIDITY_HYST', 2))
